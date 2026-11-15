@@ -7,47 +7,36 @@
     <style>
       body { font-family: sans-serif; padding: 20px; background: #1e1e2e; color: #cdd6f4; }
       label { display: block; margin-top: 15px; font-weight: bold; }
-      input, textarea { width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #45475a; background: #313244; color: #cdd6f4; }
+      input, textarea { width: 100%; padding: 8px; margin-top: 5px; border-radius: 6px; border: 1px solid #45475a; background: #313244; color: #cdd6f4; box-sizing: border-box; }
       button { margin-top: 20px; padding: 10px 20px; background: #89b4fa; color: #1e1e2e; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
       button:hover { background: #b4befe; }
       .row { display: flex; gap: 15px; }
       .row > div { flex: 1; }
-
-      /* POPUP STYLES */
-      body.popup-mode { background: transparent; padding: 0; margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-      #popup-box { display: none; background: rgba(30, 30, 46, 0.95); color: #cdd6f4; padding: 30px; border-radius: 16px; text-align: center; font-size: 1.2rem; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid #45475a; cursor: pointer; max-width: 80%; }
-      #popup-box:hover { background: rgba(49, 50, 68, 0.98); }
     </style>
   </head>
   <body>
-    <!-- SETTINGS UI -->
-    <div id="settings-ui">
-        <h1>Mezame</h1>
-        <p>Configure what happens when you return to your laptop.</p>
+    <h1>Mezame</h1>
+    <p>Configure what happens when you return to your laptop.</p>
 
-        <label for="message">Popup Message</label>
-        <textarea id="message" rows="3"></textarea>
+    <label for="message">Popup Message</label>
+    <textarea id="message" rows="3"></textarea>
 
-        <div class="row">
-          <div>
-            <label for="delay">Delay after wake (seconds)</label>
-            <input type="number" id="delay" min="0" step="1" />
-          </div>
-          <div>
-            <label for="dismiss">Auto-dismiss after (seconds)</label>
-            <input type="number" id="dismiss" min="1" step="1" />
-          </div>
-        </div>
-
-        <label for="threshold">Idle threshold to count as "away" (seconds)</label>
-        <input type="number" id="threshold" min="1" step="1" />
-
-        <button id="save">Save Settings</button>
-        <button id="test-popup" style="background: #a6e3a1; margin-top: 10px;">Test Popup</button>
+    <div class="row">
+      <div>
+        <label for="delay">Delay after wake (seconds)</label>
+        <input type="number" id="delay" min="0" step="1" />
+      </div>
+      <div>
+        <label for="dismiss">Auto-dismiss after (seconds)</label>
+        <input type="number" id="dismiss" min="1" step="1" />
+      </div>
     </div>
 
-    <!-- POPUP UI -->
-    <div id="popup-box"></div>
+    <label for="threshold">Idle threshold to count as "away" (seconds)</label>
+    <input type="number" id="threshold" min="1" step="1" />
+
+    <button id="save">Save Settings</button>
+    <button id="test-popup" style="background: #a6e3a1; margin-top: 10px;">Test Popup</button>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

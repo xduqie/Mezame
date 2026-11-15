@@ -1,53 +1,71 @@
+pub mod config;
+pub mod sys_events;
+
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tauri::{
-    Manager, WebviewUrl, WebviewWindowBuilder, Listener,
+    Manager, WebviewUrl, WebviewWindowBuilder,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-struct PopupConfig {
-    message: String,
-    delay_secs: u64,
-    auto_dismiss_secs: u64,
-    idle_threshold_secs: u64,
-}
-
-impl Default for PopupConfig {
-    fn default() -> Self {
-        Self {
-            message: "Welcome back!".into(),
-            delay_secs: 2,
-            auto_dismiss_secs: 5,
-            idle_threshold_secs: 60,
-        }
-    }
+#[derive(Debug, Clone, Copy)]
+pub enum SysEvent {
+    Lock,
+    Unlock,
+    DisplayOff,
+    DisplayOn,
 }
 
 struct AppState {
-    popup_config: Mutex<PopupConfig>,
-    last_idle_start: Mutex<Option<Instant>>,
+    cfg: Mutex<config::Config>,
 }
 
-fn show_popup(app: &tauri::AppHandle, config: &PopupConfig) {
+fn show_popup(app: &tauri::AppHandle, cfg: &config::Config) {
     if let Some(w) = app.get_webview_window("popup") {
         let _ = w.close();
     }
 
-    let encoded_msg = urlencoding::encode(&config.message);
-    
-    // CHANGED: Pointing to popup.html (from the public folder)
-    let url = format!(
-        "popup.html?message={}&dismiss={}",
-        encoded_msg, config.auto_dismiss_secs
+    let photo_html = if let Some(path) = &cfg.photo_path {
+        if let Some(uri) = config::photo_data_uri(path, 800) {
+            format!(r#"<img src="{}" style="max-width: 100%; border-radius: 8px; margin-bottom: 15px;" />"#, uri)
+        } else { String::new() }
+    } else { String::new() };
+
+    let dismiss_js = if cfg.dismiss_secs > 0 {
+        format!("setTimeout(() => window.close(), {} * 1000);", cfg.dismiss_secs)
+    } else { String::new() };
+
+    let html = format!(
+        r#"<!doctype html>
+        <html>
+        <head>
+            <style>
+                html, body {{ margin: 0; padding: 0; width: 100vw; height: 100vh; background: transparent !important; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }}
+                #box {{ background: rgba(30, 30, 46, 0.95); color: #cdd6f4; padding: 30px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); border: 1px solid #45475a; cursor: pointer; text-align: center; font-size: 1.2rem; max-width: 80%; display: flex; flex-direction: column; align-items: center; }}
+                #box:hover {{ background: rgba(49, 50, 68, 0.98); }}
+                h1 {{ font-size: 1.5rem; margin-top: 0; color: #89b4fa; }}
+            </style>
+        </head>
+        <body onclick="window.close()">
+            <div id="box">
+                {}
+                <h1>{}</h1>
+                <p>{}</p>
+            </div>
+            <script>{}</script>
+        </body>
+        </html>"#,
+        photo_html, cfg.title, cfg.message, dismiss_js
     );
 
-    WebviewWindowBuilder::new(app, "popup", WebviewUrl::App(url.into()))
+    let url = format!("data:text/html;charset=utf-8,{}", urlencoding::encode(&html));
+
+    WebviewWindowBuilder::new(app, "popup", WebviewUrl::External(url.parse().unwrap()))
         .title("")
-        .inner_size(400.0, 200.0)
+        .inner_size(500.0, 400.0)
         .decorations(false)
-        .transparent(true)
+        .transparent(true) 
         .always_on_top(true)
         .skip_taskbar(true)
         .resizable(false)
@@ -56,35 +74,60 @@ fn show_popup(app: &tauri::AppHandle, config: &PopupConfig) {
         .expect("Failed to build popup window");
 }
 
-#[tauri::command]
-fn get_popup_config(state: tauri::State<AppState>) -> PopupConfig {
-    state.popup_config.lock().unwrap().clone()
+pub fn on_system_event(app: &tauri::AppHandle, ev: SysEvent) {
+    let state = app.state::<AppState>();
+    let cfg = state.cfg.lock().unwrap().clone();
+
+    let should_popup = match ev {
+        SysEvent::Unlock => cfg.popup_on_unlock,
+        SysEvent::DisplayOn => cfg.popup_on_display_wake,
+        _ => false,
+    };
+
+    if should_popup {
+        let app_clone = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(cfg.delay_ms));
+            let app_main = app_clone.clone();
+            app_clone.run_on_main_thread(move || {
+                show_popup(&app_main, &cfg);
+            }).unwrap();
+        });
+    }
 }
 
 #[tauri::command]
-fn set_popup_config(state: tauri::State<AppState>, config: PopupConfig) {
-    *state.popup_config.lock().unwrap() = config;
+fn get_config(state: tauri::State<AppState>) -> config::Config {
+    state.cfg.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn save_config(app: tauri::AppHandle, state: tauri::State<AppState>, cfg: config::Config) {
+    *state.cfg.lock().unwrap() = cfg.clone();
+    let _ = config::save(&app, &cfg);
 }
 
 #[tauri::command]
 fn trigger_popup(app: tauri::AppHandle, state: tauri::State<AppState>) {
-    let config = state.popup_config.lock().unwrap().clone();
-    show_popup(&app, &config);
+    let cfg = state.cfg.lock().unwrap().clone();
+    show_popup(&app, &cfg);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        // Set the plugin threshold to 1 second so we get instant updates
-        .plugin(tauri_plugin_idlemonitor::Builder::new().idle_threshold_secs(1).build())
+        // ONLY store and autostart plugins remain
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_autostart::Builder::new().build())
-        .manage(AppState {
-            popup_config: Mutex::new(PopupConfig::default()),
-            last_idle_start: Mutex::new(None),
-        })
         .setup(|app| {
-            // 1. Handle Main Window Closing
+            // Load config from disk
+            let (cfg, _is_first_run) = config::load(app.handle());
+            app.manage(AppState { cfg: Mutex::new(cfg) });
+
+            // Start the raw Windows event listener!
+            sys_events::start(app.handle().clone());
+
+            // Handle Main Window Closing
             let main_window = app.get_webview_window("main").unwrap();
             let window = main_window.clone();
             main_window.on_window_event(move |event| {
@@ -94,7 +137,7 @@ pub fn run() {
                 }
             });
 
-            // 2. System Tray Setup
+            // System Tray
             let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
@@ -124,62 +167,11 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // 3. IDLE MONITOR LOGIC
-            let handle = app.handle().clone();
-            handle.clone().listen_any("idle", move |event| {
-                // ADDED: Debug statement to see if the event fires
-                println!("DEBUG: Idle Event Fired! Payload: {}", event.payload());
-                
-                let payload = event.payload();
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(payload) {
-                    if let Some(is_idle) = parsed.get("idle").and_then(|v| v.as_bool()) {
-                        let state = handle.state::<AppState>();
-                        if is_idle {
-                            // User went idle
-                            let mut start = state.last_idle_start.lock().unwrap();
-                            if start.is_none() {
-                                *start = Some(Instant::now());
-                            }
-                        } else {
-                            // User returned
-                            let mut start = state.last_idle_start.lock().unwrap();
-                            if let Some(idle_start_time) = start.take() {
-                                let idle_duration = idle_start_time.elapsed().as_secs();
-                                let config = state.popup_config.lock().unwrap().clone();
-                                println!("User returned after {} seconds", idle_duration);
-
-                                if idle_duration >= config.idle_threshold_secs {
-                                    let h = handle.clone();
-                                    let cfg = config.clone();
-                                    std::thread::spawn(move || {
-                                        std::thread::sleep(Duration::from_secs(cfg.delay_secs));
-                                        show_popup(&h, &cfg);
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // 4. RESUME FROM SLEEP LOGIC
-            let handle2 = app.handle().clone();
-            handle2.clone().listen_any("resume", move |_| {
-                println!("DEBUG: System Resume Event Fired!");
-                let state = handle2.state::<AppState>();
-                let config = state.popup_config.lock().unwrap().clone();
-                let h = handle2.clone();
-                std::thread::spawn(move || {
-                    std::thread::sleep(Duration::from_secs(config.delay_secs));
-                    show_popup(&h, &config);
-                });
-            });
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_popup_config,
-            set_popup_config,
+            get_config,
+            save_config,
             trigger_popup
         ])
         .run(tauri::generate_context!())

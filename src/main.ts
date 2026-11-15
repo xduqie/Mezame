@@ -35,7 +35,15 @@ async function saveConfig() {
     alert('Settings saved!');
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    // Start the idle monitor
+    try {
+        await invoke('plugin:idlemonitor|start', { idleThresholdSecs: 1 });
+        console.log("Idle monitor started successfully.");
+    } catch (e) {
+        console.error("Failed to start idle monitor", e);
+    }
+
     loadConfig();
     document.getElementById('save')!.addEventListener('click', saveConfig);
     document.getElementById('test-popup')!.addEventListener('click', () => {
