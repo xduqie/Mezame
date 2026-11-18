@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
- 
+
 // Two entry points: the settings window (index.html) and the popup (popup.html).
 export default defineConfig({
   clearScreen: false,
@@ -15,4 +15,3 @@ export default defineConfig({
     },
   },
 });
- 

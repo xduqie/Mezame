@@ -1,42 +1,26 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    html, body { 
-      margin: 0; padding: 0; width: 100vw; height: 100vh; 
-      background: transparent !important; 
-      overflow: hidden; 
-      display: flex; justify-content: center; align-items: center; 
-      font-family: sans-serif; 
-    }
-    #box { 
-      background: rgba(30, 30, 46, 0.95); 
-      color: #cdd6f4; 
-      padding: 30px; 
-      border-radius: 16px; 
-      border: 1px solid #45475a; 
-      box-shadow: 0 8px 30px rgba(0,0,0,0.5); 
-      cursor: pointer; 
-      text-align: center; 
-      font-size: 1.2rem; 
-      max-width: 80%;
-    }
-    #box:hover { background: rgba(49, 50, 68, 0.98); }
-  </style>
-</head>
-<body onclick="window.close()">
-  <div id="box">Loading...</div>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const box = document.getElementById('box');
-    
-    box.innerText = decodeURIComponent(params.get('message') || 'Welcome back!');
-    
-    let dismiss = parseInt(params.get('dismiss') || '5', 10);
-    if (isNaN(dismiss) || dismiss <= 0) dismiss = 5;
-    
-    setTimeout(() => window.close(), dismiss * 1000);
-  </script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mezame</title>
+    <link rel="stylesheet" href="/src/popup.css" />
+  </head>
+  <body>
+    <article class="card" id="card" role="alertdialog" aria-labelledby="title" aria-describedby="message">
+      <div class="hero" id="hero">
+        <img id="photo" alt="" hidden />
+        <time id="clock" hidden></time>
+      </div>
+      <div class="body">
+        <span class="mark"></span>
+        <h1 id="title"></h1>
+        <p id="message"></p>
+      </div>
+      <footer>Click anywhere or press Esc to dismiss</footer>
+      <div class="timer" id="timer" hidden><i id="bar"></i></div>
+    </article>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+    <script type="module" src="/src/popup.ts"></script>
+  </body>
 </html>

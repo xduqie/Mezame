@@ -1,0 +1,106 @@
+:root { --pad: 20px; --accent: #ffc933; --on-accent: #1a1033; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; cursor: default; }
+body { font: 0.9375rem/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+
+/* ---- themes (minimal + glide) ---- */
+body.theme-dark  { --bg: #14172b; --fg: #c9d3f2; --title: #f1f3ff; --muted: #7d88b8; --hero: #273056; --edge: rgba(255,255,255,.08); --track: rgba(255,255,255,.07); }
+body.theme-light { --bg: #fbf9f4; --fg: #4a4f73; --title: #14172b; --muted: #8b90ad; --hero: #dfe4f7; --edge: rgba(20,23,43,.09);  --track: rgba(20,23,43,.07); }
+body.font-serif { --tf: Georgia, "Times New Roman", serif; --tw: 700; }
+body.font-sans  { --tf: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; --tw: 700; }
+body.font-mono  { --tf: "Cascadia Code", Consolas, monospace; --tw: 700; }
+
+/* ---- card ---- */
+.card {
+  position: absolute; inset: var(--pad);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg); color: var(--fg); border-radius: 1.4rem;
+  box-shadow: 0 1.1rem 3rem rgba(5, 6, 20, .5), 0 0 0 1px var(--edge);
+}
+.hero {
+  position: relative; flex: none; height: 6.5rem; overflow: hidden;
+  background:
+    radial-gradient(7.5rem 4.4rem at 50% 100%, color-mix(in srgb, var(--accent) 88%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--hero), color-mix(in srgb, var(--hero) 68%, var(--accent)));
+}
+.hero.photo { height: 14.6rem; background: var(--hero); }
+.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero.photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, var(--bg)); }
+time {
+  position: absolute; z-index: 1; left: 1.25rem; top: 1rem; font-weight: 600; font-size: .8rem; color: #fff;
+  background: rgba(20, 23, 43, .55); padding: .2rem .65rem; border-radius: 999px; backdrop-filter: blur(6px);
+}
+.body { flex: 1; min-height: 0; padding: .3rem 1.65rem 0; overflow-y: auto; scrollbar-width: none; }
+.body::-webkit-scrollbar { display: none; }
+.mark { display: block; width: 2.6rem; height: .28rem; border-radius: .2rem; background: var(--accent); margin: 0 0 .75rem; }
+h1 { margin: 0 0 .5rem; font: var(--tw) 1.8rem/1.15 var(--tf); color: var(--title); letter-spacing: .005em; }
+#message { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+footer { flex: none; padding: .85rem 1.65rem 1.1rem; font-size: .75rem; color: var(--muted); }
+.timer { position: absolute; left: 0; right: 0; bottom: 0; height: .2rem; background: var(--track); }
+.timer i { display: block; height: 100%; background: var(--accent); transform-origin: left; animation: drain linear forwards; }
+@keyframes drain { to { transform: scaleX(0); } }
+
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+
+/* ---- MINIMAL: soft focus-in, gentle rise ---- */
+.style-minimal .card { animation: m-in .55s cubic-bezier(.16, 1, .3, 1) both; }
+.style-minimal .card.leaving { animation: m-out .3s cubic-bezier(.4, 0, 1, 1) forwards; }
+@keyframes m-in  { from { opacity: 0; transform: translateY(1.2rem) scale(.97); filter: blur(6px); } }
+@keyframes m-out { to   { opacity: 0; transform: translateY(.8rem) scale(.97); filter: blur(4px); } }
+.style-minimal .hero img { animation: m-img 1.4s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes m-img { from { transform: scale(1.1); } }
+.style-minimal .body > * { animation: m-rise .7s cubic-bezier(.16, 1, .3, 1) both; }
+.style-minimal .body > :nth-child(1) { animation-delay: .10s; }
+.style-minimal .body > :nth-child(2) { animation-delay: .17s; }
+.style-minimal .body > :nth-child(3) { animation-delay: .24s; }
+@keyframes m-rise { from { opacity: 0; transform: translateY(.6rem); } }
+
+/* ---- GLIDE: the window itself slides in from the screen edge (done natively), card stays crisp ---- */
+
+/* ---- FUNKY: bright, bouncy, confetti ---- */
+.style-funky { --ink: #1a1033; --pink: #ff3d81; --cyan: #2de2e6; }
+.style-funky .card {
+  background: var(--accent); color: var(--on-accent); border: .28rem solid var(--ink); border-radius: 1.7rem;
+  box-shadow: .5rem .5rem 0 var(--ink), 1rem 1rem 0 var(--pink);
+  transform-origin: 50% 60%; animation: f-in .8s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.style-funky .card.leaving { animation: f-out .42s cubic-bezier(.5, 0, .9, .4) forwards; }
+@keyframes f-in {
+  0%   { opacity: 0; transform: scale(.12) rotate(-26deg) translateY(4rem); }
+  50%  { opacity: 1; transform: scale(1.09) rotate(3.5deg); }
+  78%  { transform: scale(.97) rotate(-2.6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-1.5deg); }
+}
+@keyframes f-out {
+  0%   { transform: scale(1) rotate(-1.5deg); }
+  28%  { transform: scale(1.08) rotate(2.5deg); }
+  100% { opacity: 0; transform: scale(.04) rotate(32deg) translateY(-3rem); }
+}
+.style-funky .hero {
+  height: 6.2rem; border-bottom: .28rem solid var(--ink);
+  background: radial-gradient(circle, rgba(255,255,255,.4) .13rem, transparent .14rem) 0 0 / .75rem .75rem, var(--pink);
+}
+.style-funky .hero.photo { height: 14.2rem; background: var(--pink); }
+.style-funky .hero.photo::after { display: none; }
+.style-funky time {
+  background: var(--cyan); color: var(--ink); border: .2rem solid var(--ink); font-weight: 800;
+  backdrop-filter: none; transform: rotate(4deg); padding: .15rem .7rem;
+}
+.style-funky .mark { background: var(--ink); width: 3.6rem; height: .42rem; border-radius: .1rem; transform: skewX(-24deg); }
+.style-funky h1 {
+  font: 900 1.95rem/1.08 "Segoe UI Black", "Arial Black", system-ui, sans-serif;
+  color: var(--on-accent); text-shadow: .1rem .1rem 0 var(--pink); letter-spacing: -.01em;
+}
+.style-funky #message { font-weight: 600; }
+.style-funky footer { color: var(--on-accent); opacity: .65; font-weight: 600; }
+.style-funky .timer { height: .5rem; background: var(--ink); }
+.style-funky .timer i { background: var(--pink); }
+.style-funky .body > * { animation: f-pop .55s .25s cubic-bezier(.34, 1.56, .64, 1) both; }
+.style-funky .body > :nth-child(2) { animation-delay: .32s; }
+.style-funky .body > :nth-child(3) { animation-delay: .4s; }
+@keyframes f-pop { from { opacity: 0; transform: translateY(.9rem) scale(.9); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .body > *, .hero img { animation-duration: .01s !important; animation-delay: 0s !important; }
+}
